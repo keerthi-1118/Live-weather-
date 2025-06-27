@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Weather App</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', sans-serif;
+      transition: background-image 1s ease-in-out;
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-image: url('https://media.istockphoto.com/id/477110708/photo/weather-forecast.jpg?s=612x612&w=0&k=20&c=plbIXX9mIs7G92x_HBc5KgbbHef5S-V130t9SqAabKI=');
+
+    }
+    .weather-box {
+      background: #ffffffdd;
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      max-width: 400px;
+      width: 100%;
+    }
+    .weather-icon {
+      width: 80px;
+    }
+    #weatherResult {
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    #weatherResult.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    #cityInput {
+      transition: box-shadow 0.3s ease;
+    }
+    #cityInput:focus {
+      box-shadow: 0 0 10px rgba(0, 128, 255, 0.8);
+      border: 1px solid #007bff;
+    }
+  </style>
+</head>
+<body>
+
+<div class="weather-box text-center">
+  <h2 class="mb-4">🌤️ Weather Checker</h2>
+  <div class="input-group mb-3">
+    <input type="text" id="cityInput" class="form-control" placeholder="Enter city name" />
+    <button onclick="getWeather()" class="btn btn-primary">Search</button>
+  </div>
+  <div id="weatherResult" class="mt-4"></div>
+</div>
+
+<script>
+  const weatherApiKey = "e7bf4d0714694208bf094245252606"; // Weather API key
+  const pexelsApiKey = "3fqXuIrHRvIxXV2i3SEf1T6AmeyqOaOv5wkhNY9zCcHBnpRGl5gUDq3y"; // ✅ Your Pexels API key
+
+  async function getWeather() {
+    const city = document.getElementById("cityInput").value.trim();
+    const resultBox = document.getElementById("weatherResult");
+
+    resultBox.classList.remove("show");
+
+    if (!city) {
+      resultBox.innerHTML = `<div class="alert alert-warning">Please enter a city name!</div>`;
+      return;
+    }
+
+    const weatherUrl = `https://api.weatherapi.com/v1/current.json?key=${weatherApiKey}&q=${city}`;
+
+    try {
+      const weatherRes = await fetch(weatherUrl);
+      const data = await weatherRes.json();
+
+      if (data.error) {
+        resultBox.innerHTML = `<div class="alert alert-danger">${data.error.message}</div>`;
+        return;
+      }
+
+      const weather = data.current;
+      const location = data.location;
+      const iconUrl = "https:" + weather.condition.icon;
+
+      // 🌆 Load background from Pexels
+      const pexelsUrl = `https://api.pexels.com/v1/search?query=${city}&per_page=1`;
+      const pexelsRes = await fetch(pexelsUrl, {
+        headers: {
+          Authorization: pexelsApiKey
+        }
+      });
+      const pexelsData = await pexelsRes.json();
+
+      if (pexelsData.photos && pexelsData.photos.length > 0) {
+        const bgUrl = pexelsData.photos[0].src.large2x;
+        document.body.style.backgroundImage = `url(${bgUrl})`;
+      } else {
+        document.body.style.backgroundImage = ""; // fallback if image not found
+      }
+
+      // 🌤️ Show weather details
+      resultBox.innerHTML = `
+        <h4>${location.name}, ${location.country}</h4>
+        <img src="${iconUrl}" alt="Weather icon" class="weather-icon"/>
+        <p><strong>${weather.condition.text}</strong></p>
+        <p>🌡️ Temperature: <strong>${weather.temp_c}°C</strong></p>
+        <p>💧 Humidity: <strong>${weather.humidity}%</strong></p>
+        <p>🌬️ Wind Speed: <strong>${weather.wind_kph} kph</strong></p>
+      `;
+
+      setTimeout(() => resultBox.classList.add("show"), 100);
+
+    } catch (error) {
+      resultBox.innerHTML = `<div class="alert alert-danger">Something went wrong. Try again later.</div>`;
+      console.error("Error:", error);
+    }
+  }
+</script>
+
+</body>
+</html>
