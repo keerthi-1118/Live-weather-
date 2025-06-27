@@ -2,11 +2,6 @@
 
 A modern and visually dynamic weather application that displays real-time weather data for any city in the world — with glowing inputs, animated transitions, and background images based on the searched location!
 
-![App Screenshot](https://user-images.githubusercontent.com/your-screenshot-url.png)
-
-## 🔗 Live Demo
-Coming soon...
-
 ---
 
 ## 🚀 Features
@@ -33,5 +28,5 @@ Coming soon...
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/your-username/weather-checker.git
+   git clone https://github.com/keerthi-1118/Live-weather.git
    cd weather-checker
