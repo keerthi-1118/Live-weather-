@@ -17,7 +17,7 @@
       background-repeat: no-repeat;
       background-position: center;
       background-image: url('image.png');
-
+      padding: 1rem;
     }
     .weather-box {
       background: #ffffffdd;
@@ -26,9 +26,16 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.1);
       max-width: 400px;
       width: 100%;
+      margin: 1rem auto;
     }
-    .weather-icon {
-      width: 80px;
+    @media (max-width: 600px) {
+      .weather-box {
+        padding: 1rem;
+        max-width: 98vw;
+      }
+      .weather-icon {
+        width: 60px;
+      }
     }
     #weatherResult {
       opacity: 0;
@@ -55,40 +62,41 @@
   <div class="input-group mb-3">
     <input type="text" id="cityInput" class="form-control" placeholder="Enter city name" />
     <button onclick="getWeather()" class="btn btn-primary">Search</button>
+    <button onclick="getWeatherByLocation()" class="btn btn-success ms-2">Use My Location</button>
   </div>
   <div id="weatherResult" class="mt-4"></div>
+  <div id="forecastResult" class="mt-4"></div>
 </div>
 
 <script>
   const weatherApiKey = "e7bf4d0714694208bf094245252606"; // Weather API key
   const pexelsApiKey = "3fqXuIrHRvIxXV2i3SEf1T6AmeyqOaOv5wkhNY9zCcHBnpRGl5gUDq3y"; // ✅ Your Pexels API key
 
-  async function getWeather() {
-    const city = document.getElementById("cityInput").value.trim();
+  async function getWeather(city) {
+    if (!city) {
+      city = document.getElementById("cityInput").value.trim();
+    }
     const resultBox = document.getElementById("weatherResult");
-
+    const forecastBox = document.getElementById("forecastResult");
     resultBox.classList.remove("show");
-
+    forecastBox.innerHTML = "";
     if (!city) {
       resultBox.innerHTML = `<div class="alert alert-warning">Please enter a city name!</div>`;
       return;
     }
-
     const weatherUrl = `https://api.weatherapi.com/v1/current.json?key=${weatherApiKey}&q=${city}`;
-
+    const forecastUrl = `https://api.weatherapi.com/v1/forecast.json?key=${weatherApiKey}&q=${city}&days=3`;
     try {
+      // Current weather
       const weatherRes = await fetch(weatherUrl);
       const data = await weatherRes.json();
-
       if (data.error) {
         resultBox.innerHTML = `<div class="alert alert-danger">${data.error.message}</div>`;
         return;
       }
-
       const weather = data.current;
       const location = data.location;
       const iconUrl = "https:" + weather.condition.icon;
-
       // 🌆 Load background from Pexels
       const pexelsUrl = `https://api.pexels.com/v1/search?query=${city}&per_page=1`;
       const pexelsRes = await fetch(pexelsUrl, {
@@ -97,14 +105,12 @@
         }
       });
       const pexelsData = await pexelsRes.json();
-
       if (pexelsData.photos && pexelsData.photos.length > 0) {
         const bgUrl = pexelsData.photos[0].src.large2x;
         document.body.style.backgroundImage = `url(${bgUrl})`;
       } else {
         document.body.style.backgroundImage = ""; // fallback if image not found
       }
-
       // 🌤️ Show weather details
       resultBox.innerHTML = `
         <h4>${location.name}, ${location.country}</h4>
@@ -114,13 +120,52 @@
         <p>💧 Humidity: <strong>${weather.humidity}%</strong></p>
         <p>🌬️ Wind Speed: <strong>${weather.wind_kph} kph</strong></p>
       `;
-
       setTimeout(() => resultBox.classList.add("show"), 100);
-
+      // Multi-day forecast
+      const forecastRes = await fetch(forecastUrl);
+      const forecastData = await forecastRes.json();
+      if (forecastData.forecast && forecastData.forecast.forecastday) {
+        let forecastHtml = `<h5 class='mt-4'>3-Day Forecast</h5><div class='row'>`;
+        forecastData.forecast.forecastday.forEach(day => {
+          forecastHtml += `
+            <div class='col-12 col-md-4 mb-2'>
+              <div class='card'>
+                <div class='card-body'>
+                  <h6>${day.date}</h6>
+                  <img src="https:${day.day.condition.icon}" alt="icon" style="width:40px;"/>
+                  <p>${day.day.condition.text}</p>
+                  <p>🌡️ Max: ${day.day.maxtemp_c}°C / Min: ${day.day.mintemp_c}°C</p>
+                  <p>💧 Humidity: ${day.day.avghumidity}%</p>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        forecastHtml += `</div>`;
+        forecastBox.innerHTML = forecastHtml;
+      }
     } catch (error) {
       resultBox.innerHTML = `<div class="alert alert-danger">Something went wrong. Try again later.</div>`;
       console.error("Error:", error);
     }
+  }
+
+  function getWeatherByLocation() {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        const city = `${lat},${lon}`;
+        await getWeather(city);
+      },
+      (error) => {
+        alert("Unable to retrieve your location.");
+      }
+    );
   }
 </script>
 
